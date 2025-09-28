@@ -1,0 +1,44 @@
+{
+    "reminders": [],
+    "expired_reminders": [
+        {
+            "title": "買牛奶",
+            "id": "L0001",
+            "type": "life",
+            "start_time": "2025-09-18 23:00",
+            "end_time": "2025-09-18 23:00",
+            "description": "順便買雞蛋",
+            "priority": "medium",
+            "alert1": "1 week before",
+            "alert2": "At start time",
+            "finish": false,
+            "repeat": false
+        },
+        {
+            "title": "開會",
+            "id": "work_1757612332007",
+            "type": "work",
+            "start_time": "2025-09-17 23:50",
+            "end_time": "2025-09-17 23:50",
+            "description": "專案進度會議",
+            "priority": "medium",
+            "alert1": "1 hour before",
+            "alert2": "1 day before",
+            "finish": false,
+            "repeat": true
+        },
+        {
+            "title": "繳房租",
+            "id": "finance_1757612332008",
+            "type": "finance",
+            "start_time": "2024-08-01 09:00",
+            "end_time": "2024-08-01 09:30",
+            "description": "每月房租繳納",
+            "priority": "low",
+            "alert1": "1 day before",
+            "alert2": "None",
+            "finish": false,
+            "repeat": true
+        }
+    ]
+}

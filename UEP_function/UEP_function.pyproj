@@ -1,0 +1,181 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>4f116952-cc87-4e6b-8efb-b521c2fc363f</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>main.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>UEP_function</Name>
+    <RootNamespace>UEP_function</RootNamespace>
+    <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
+    <TestFramework>Pytest</TestFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="clean_trash_bin\clean_trash_bin_main.py" />
+    <Compile Include="dialog_box\test_window.py" />
+    <Compile Include="dialog_box\typerwrite_effect.py" />
+    <Compile Include="get_world_time\get_world_time_main.py" />
+    <Compile Include="get_world_time\time_zone.py" />
+    <Compile Include="google_calendar_agent\authorize.py" />
+    <Compile Include="google_calendar_agent\calendar_main.py" />
+    <Compile Include="google_calendar_agent\color.py" />
+    <Compile Include="google_calendar_agent\event.py" />
+    <Compile Include="main.py" />
+    <Compile Include="music_controller\music_cache_controller.py" />
+    <Compile Include="music_controller\music_control_main.py" />
+    <Compile Include="music_controller\music_control.py" />
+    <Compile Include="music_controller\music_control_ui.py" />
+    <Compile Include="music_controller\play_media.py" />
+    <Compile Include="set_reminder\animate.py" />
+    <Compile Include="set_reminder\edit_overlay.py" />
+    <Compile Include="set_reminder\main_window.py" />
+    <Compile Include="set_reminder\right_click_btn.py" />
+    <Compile Include="set_reminder\sorting_ui.py" />
+    <Compile Include="set_reminder\record_controller.py" />
+    <Compile Include="set_reminder\task_record.json" />
+    <Compile Include="set_reminder\today_list_ui.py" />
+    <Compile Include="set_reminder\gray_background_overlay.py" />
+    <Compile Include="set_reminder\widget.py" />
+    <Compile Include="translate_export\language_map.py" />
+    <Compile Include="translate_export\translate_file.py" />
+    <Compile Include="translate_export\translate_main.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env\">
+      <Id>env</Id>
+      <Version>3.11</Version>
+      <Description>env (Python 3.11 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="dialog_box\dialog_ani\" />
+    <Folder Include="music_controller\" />
+    <Folder Include="dialog_box\" />
+    <Folder Include="google_calendar_agent\" />
+    <Folder Include="clean_trash_bin\" />
+    <Folder Include="get_world_time\" />
+    <Folder Include="music_controller\image\" />
+    <Folder Include="set_reminder\" />
+    <Folder Include="OCR_identity\" />
+    <Folder Include="set_reminder\image\" />
+    <Folder Include="translate_export\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="dialog_box\dialog_ani\dialog_box_0.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_1.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_2.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_3.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_4.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_5.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_6.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_7.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_8.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_9.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_10.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_11.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_12.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_13.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_14.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_15.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_16.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_17.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_18.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_19.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_20.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_21.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_22.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_23.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_24.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_25.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_26.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_27.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_28.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_29.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_30.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_31.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_32.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_33.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_34.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_35.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_36.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_37.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_38.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_39.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_40.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_41.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_42.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_43.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_44.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_45.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_46.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_47.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_48.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_49.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_50.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_51.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_52.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_53.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_54.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_55.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_56.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_57.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_58.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_59.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_60.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_61.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_62.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_63.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_64.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_65.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_66.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_67.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_68.png" />
+    <Content Include="dialog_box\dialog_ani\dialog_box_69.png" />
+    <Content Include="google_calendar_agent\credentials.json" />
+    <Content Include="music_controller\image\back.png" />
+    <Content Include="music_controller\image\loop.png" />
+    <Content Include="music_controller\image\music-notes.png" />
+    <Content Include="music_controller\image\next.png" />
+    <Content Include="music_controller\image\pause.png" />
+    <Content Include="music_controller\image\play.png" />
+    <Content Include="music_controller\image\search.png" />
+    <Content Include="music_controller\music_cache.json" />
+    <Content Include="OCR_identity\OCR_main.py" />
+    <Content Include="set_reminder\image\add.png" />
+    <Content Include="set_reminder\image\add_hover.png" />
+    <Content Include="set_reminder\image\background.png" />
+    <Content Include="set_reminder\CaviarDreams-Bold-2.ttf" />
+    <Content Include="set_reminder\image\delete.png" />
+    <Content Include="set_reminder\image\delete_hover.png" />
+    <Content Include="set_reminder\image\edit.png" />
+    <Content Include="set_reminder\image\edit_hover.png" />
+    <Content Include="set_reminder\image\expired.png" />
+    <Content Include="set_reminder\image\expired_hover.png" />
+    <Content Include="set_reminder\type_record.json" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

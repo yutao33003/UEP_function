@@ -1,0 +1,29 @@
+{
+    "type": [
+        {
+            "id": "work",
+            "type_name": "work",
+            "color": "#C1AE8D"
+        },
+        {
+            "id": "life",
+            "type_name": "life",
+            "color": "#6F7D5C"
+        },
+        {
+            "id": "finance",
+            "type_name": "finance",
+            "color": "#BE7F54"
+        },
+        {
+            "id": "other",
+            "type_name": "other",
+            "color": "#CF9546"
+        },
+        {
+            "id": "1",
+            "type_name": "1",
+            "color": "#8D91AA"
+        }
+    ]
+}
