@@ -2,24 +2,16 @@
 import time
 import webbrowser
 import pywhatkit
+from music_controller.music_cache_controller import MusicCache
 from music_controller.music_control import MusicPlayer
 import urllib.parse
 
-SEARCH_ROOTS = ["C:/Users", "D:/", "E:/"]
-SUPPORTED_EXTENSIONS = ('.mp3', '.wav', '.flac', '.aac', '.m4a', '.mp4', '.wma')
 
 # 媒體播放器中尋找
 def search_music_file_in_explorer(song_keyword):
-    for root_dir in SEARCH_ROOTS:
-        for folder, _, files in os.walk(root_dir):
-            for file in files:
-                if file.lower().endswith(SUPPORTED_EXTENSIONS) and song_keyword.lower() in file.lower():
-                    full_path = os.path.join(folder, file)
-                    print(f"找到檔案:{full_path}")
-                    return full_path
-                    
-    print("找不到符合的音樂檔案")
-    return None
+    music_search = MusicCache()
+    file_path = music_search.search_song(song_keyword)
+    return file_path
 
 def play_music(fullpath):
     print(f"Now playing: {fullpath}")

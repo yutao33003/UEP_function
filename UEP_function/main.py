@@ -12,7 +12,7 @@ from set_reminder.record_controller import TaskController
 TaskController().move_expired_reminders()
 schedule.every().day.at("00:00").do(TaskController().move_expired_reminders)
 
-num = int(input("輸入 1 進到media control，2 translate，3 dialog_box，4 OCR 辨識，5 各國標準時間，6 set_reminder："))
+num = int(input("輸入 1 進到media control，2 translate，3 dialog_box，4 OCR 辨識，5 各國標準時間，6 set_reminder，7 clean_trash_bin："))
 
 if num == 1:
     music_control_main.main()   

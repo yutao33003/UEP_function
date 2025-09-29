@@ -38,6 +38,11 @@
     <Compile Include="music_controller\music_control.py" />
     <Compile Include="music_controller\music_control_ui.py" />
     <Compile Include="music_controller\play_media.py" />
+    <Compile Include="scheduler_service\setup_tasks.py" />
+    <Compile Include="scheduler_service\scheduler_manager.py" />
+    <Compile Include="scheduler_service\tasks\music_cache_task.py" />
+    <Compile Include="scheduler_service\tasks\reminder_expired_task.py" />
+    <Compile Include="scheduler_service\tasks\reminder_notify_task.py" />
     <Compile Include="set_reminder\animate.py" />
     <Compile Include="set_reminder\edit_overlay.py" />
     <Compile Include="set_reminder\main_window.py" />
@@ -71,6 +76,8 @@
     <Folder Include="clean_trash_bin\" />
     <Folder Include="get_world_time\" />
     <Folder Include="music_controller\image\" />
+    <Folder Include="scheduler_service\" />
+    <Folder Include="scheduler_service\tasks\" />
     <Folder Include="set_reminder\" />
     <Folder Include="OCR_identity\" />
     <Folder Include="set_reminder\image\" />

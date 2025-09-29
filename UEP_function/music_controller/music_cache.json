@@ -1,1 +1,38 @@
-﻿
+﻿{
+    "songs": {
+        "C:/Users\\yingt\\Downloads\\01_古典_2025.mp4": {
+            "name": "01_古典_2025.mp4",
+            "folder": "C:/Users\\yingt\\Downloads"
+        },
+        "C:/Users\\yingt\\Downloads\\02_古典_2025.mp4": {
+            "name": "02_古典_2025.mp4",
+            "folder": "C:/Users\\yingt\\Downloads"
+        },
+        "C:/Users\\yingt\\Downloads\\03_古典_2025.mp4": {
+            "name": "03_古典_2025.mp4",
+            "folder": "C:/Users\\yingt\\Downloads"
+        },
+        "C:/Users\\yingt\\Downloads\\3D遊玩教學影片.mp4": {
+            "name": "3D遊玩教學影片.mp4",
+            "folder": "C:/Users\\yingt\\Downloads"
+        },
+        "C:/Users\\yingt\\Downloads\\yung kai - blue (official music video).mp3": {
+            "name": "yung kai - blue (official music video).mp3",
+            "folder": "C:/Users\\yingt\\Downloads"
+        },
+        "C:/Users\\yingt\\Downloads\\楊丞琳 Rainie Yang - 雨愛.mp3": {
+            "name": "楊丞琳 Rainie Yang - 雨愛.mp3",
+            "folder": "C:/Users\\yingt\\Downloads"
+        }
+    },
+    "folders": {
+        "C:/Users\\yingt\\Downloads": [
+            "01_古典_2025.mp4",
+            "02_古典_2025.mp4",
+            "03_古典_2025.mp4",
+            "3D遊玩教學影片.mp4",
+            "yung kai - blue (official music video).mp3",
+            "楊丞琳 Rainie Yang - 雨愛.mp3"
+        ]
+    }
+}
