@@ -44,15 +44,26 @@
     <Compile Include="scheduler_service\tasks\reminder_expired_task.py" />
     <Compile Include="scheduler_service\tasks\reminder_notify_task.py" />
     <Compile Include="set_reminder\animate.py" />
-    <Compile Include="set_reminder\edit_overlay.py" />
-    <Compile Include="set_reminder\main_window.py" />
-    <Compile Include="set_reminder\right_click_btn.py" />
-    <Compile Include="set_reminder\sorting_ui.py" />
-    <Compile Include="set_reminder\record_controller.py" />
-    <Compile Include="set_reminder\task_record.json" />
-    <Compile Include="set_reminder\today_list_ui.py" />
-    <Compile Include="set_reminder\gray_background_overlay.py" />
-    <Compile Include="set_reminder\widget.py" />
+    <Compile Include="set_reminder\calendar\calendar_controller.py" />
+    <Compile Include="set_reminder\calendar\calendar_model.py" />
+    <Compile Include="set_reminder\calendar\calendar_ui.py" />
+    <Compile Include="set_reminder\calendar\calendar_widget.py" />
+    <Compile Include="set_reminder\calendar\event_list_widget.py" />
+    <Compile Include="set_reminder\calendar\__init__.py" />
+    <Compile Include="set_reminder\adapters\event_adapter.py" />
+    <Compile Include="set_reminder\json_repository\record_controller.py" />
+    <Compile Include="set_reminder\json_repository\task_record.json" />
+    <Compile Include="set_reminder\view\main_window.py" />
+    <Compile Include="set_reminder\view\overlay\base_overlay.py" />
+    <Compile Include="set_reminder\view\overlay\edit_overlay.py" />
+    <Compile Include="set_reminder\view\overlay\gray_background_overlay.py" />
+    <Compile Include="set_reminder\view\overlay\overlay_controller.py" />
+    <Compile Include="set_reminder\view\overlay\overlay_factory.py" />
+    <Compile Include="set_reminder\view\sorting_ui.py" />
+    <Compile Include="set_reminder\view\today_list_ui.py" />
+    <Compile Include="set_reminder\view\widget\right_click_btn.py" />
+    <Compile Include="set_reminder\view\widget\widget.py" />
+    <Compile Include="set_reminder\__init__.py" />
     <Compile Include="translate_export\language_map.py" />
     <Compile Include="translate_export\translate_file.py" />
     <Compile Include="translate_export\translate_main.py" />
@@ -81,6 +92,12 @@
     <Folder Include="set_reminder\" />
     <Folder Include="OCR_identity\" />
     <Folder Include="set_reminder\image\" />
+    <Folder Include="set_reminder\calendar\" />
+    <Folder Include="set_reminder\json_repository\" />
+    <Folder Include="set_reminder\adapters\" />
+    <Folder Include="set_reminder\view\" />
+    <Folder Include="set_reminder\view\overlay\" />
+    <Folder Include="set_reminder\view\widget\" />
     <Folder Include="translate_export\" />
   </ItemGroup>
   <ItemGroup>
@@ -174,7 +191,7 @@
     <Content Include="set_reminder\image\edit_hover.png" />
     <Content Include="set_reminder\image\expired.png" />
     <Content Include="set_reminder\image\expired_hover.png" />
-    <Content Include="set_reminder\type_record.json" />
+    <Content Include="set_reminder\json_repository\type_record.json" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

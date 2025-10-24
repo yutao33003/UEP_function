@@ -1,34 +1,54 @@
-﻿import time
+﻿import datetime
+import time
 from PyQt5.QtGui import QCursor, QIcon
 from PyQt5.QtWidgets import (
-     QCheckBox, QComboBox, QDateTimeEdit, QHBoxLayout, QLineEdit, QTextEdit,
-    QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea
+     QCheckBox, QComboBox, QDateTimeEdit, QHBoxLayout, QLineEdit, QSizePolicy, QTextEdit,
+    QWidget, QVBoxLayout, QLabel, QPushButton
 )
-from PyQt5.QtCore import QDateTime, QEasingCurve, QParallelAnimationGroup, QPropertyAnimation, Qt, pyqtSignal
-from set_reminder.animate import delete_with_animation, gradually_enter_ani
-from set_reminder.record_controller import TaskController
-from set_reminder.widget import create_button_edit, create_text_edit, font_setting
+from PyQt5.QtCore import QDateTime, QEvent, QTimer, Qt, pyqtSignal
+from set_reminder.animate import delete_with_animation, gradually_enter_ani, gradually_exit_ani
+from set_reminder.view.overlay.base_overlay import BaseOverlay
+from set_reminder.view.widget.widget import create_button_edit, create_scroll_area_edit, create_text_edit, font_setting
 
 # TaskWidget 是每個任務的 widget
 class TaskWidget(QWidget):
 
-    clicked = pyqtSignal()
-    def __init__(self, degree, title, duration, finish_state, task_id, section_key = "reminders", parent=None):
+    edit_requested = pyqtSignal(str)   # 傳 task_id
+    delete_requested = pyqtSignal(str)
+    finish_toggled = pyqtSignal(str, bool)
+
+    def __init__(self, degree, title, duration, finish_state, task_id, event_adapter = None, overlay_controller = None, parent=None):
         super().__init__(parent)
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.setAttribute(Qt.WA_StyledBackground, True)   # 讓背景顯示
-        self.setFixedSize(300,100)
+
+        # 不以 parent 寬度在建構時硬設定最小寬度，改用彈性策略
+        self.setMinimumHeight(80)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+
         self.task_id = task_id
         self.finish_state = finish_state
-        self.section_key = section_key
-        self.task_controller = TaskController(section_key)
-        self.task_controller.data_changed.connect(self.on_task_updated)
+        self.event_adapter = event_adapter
+        self.overlay_controller = overlay_controller
+
+        # 只在直接 parent（container）上安裝 eventFilter，避免監聽到整個 window
+        self._parent_widget = parent
+        if self._parent_widget is not None:
+            try:
+                # 如果 parent 本身是頂層 window，則不要監聽（避免全域共變）
+                if self._parent_widget is not self._parent_widget.window():
+                    self._parent_widget.installEventFilter(self)
+                    self._on_parent_resized()  # 初次同步
+            except Exception:
+                self._parent_widget = None
 
         self.background_color(degree)
 
         self.name = QLabel(title)
         self.name.setFont(font_setting(10))
         self.name.setStyleSheet("background: transparent;font-weight: bold;")
+        self.name.setWordWrap(True)
+        self.name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         self.checkbox = QCheckBox()
         self.checkbox.stateChanged.connect(self.toggle_completed)
@@ -41,28 +61,31 @@ class TaskWidget(QWidget):
         cell_layout.addWidget(self.name, alignment= Qt.AlignLeft)
         cell_layout.setStretch(0,1)
         cell_layout.setStretch(1,4)
+        cell_layout.setContentsMargins(0,0,0,0)
 
         self.duration_text = QLabel(duration)
         self.duration_text.setFont(font_setting(8))
         self.duration_text.setStyleSheet("background: transparent;font-weight: bold;")
+        self.duration_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.trash_button = QPushButton()
-        self.trash_button.setFixedSize(24, 24) 
-        self.trash_button.setIcon(QIcon("set_reminder/image/delete.png"))      # 設定圖片
-        self.trash_button.setIconSize(self.trash_button.size())   # 圖片大小跟隨按鈕
+        self.trash_button.setFixedSize(24, 24)
+        self.trash_button.setIcon(QIcon("set_reminder/image/delete.png"))
+        self.trash_button.setIconSize(self.trash_button.size())
         self.trash_button.setStyleSheet("border: none; background: transparent;")
-        self.trash_button.clicked.connect(lambda: self.deletePressEvent(task_id))
+        self.trash_button.clicked.connect(lambda: self.delete_requested.emit(self.task_id))
 
         self.edit_button = QPushButton()
-        self.edit_button.setFixedSize(24, 24) 
+        self.edit_button.setFixedSize(24, 24)
         self.edit_button.setIcon(QIcon("set_reminder/image/edit.png"))
         self.edit_button.setIconSize(self.edit_button.size())
         self.edit_button.setStyleSheet("border: none; background: transparent;")
-        self.edit_button.clicked.connect(lambda: self.open_edit_overlay(task_id))
+        self.edit_button.clicked.connect(lambda: self.edit_requested.emit(self.task_id))
 
         side_layout = QHBoxLayout()
         side_layout.addWidget(self.edit_button)
         side_layout.addWidget(self.trash_button)
+        side_layout.setContentsMargins(10, 10, 10, 10)
 
         text_layout = QVBoxLayout()
         text_layout.setContentsMargins(10, 10, 10, 10)
@@ -73,8 +96,38 @@ class TaskWidget(QWidget):
         layout = QHBoxLayout()
         layout.addLayout(text_layout)
         layout.addLayout(side_layout)
+        layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
-        self.setMinimumHeight(60)  # 確保 widget 高度足夠顯示背景
+
+    def eventFilter(self, obj, event):
+        # 監聽直接 parent 的 Resize 事件，僅在 parent 不是 window 時處理
+        if obj is self._parent_widget and event.type() == QEvent.Resize:
+            self._on_parent_resized()
+        return super().eventFilter(obj, event)
+
+    def _on_parent_resized(self):
+        # 根據直接 parent 寬度設定最大寬度（保留邊距），避免 TaskWidget 超出 container
+        if not self._parent_widget:
+            return
+        try:
+            margin = 24  # 保留左右內距
+            max_w = max(200, self._parent_widget.width() - margin)
+            self.setMaximumWidth(max_w)
+            self.updateGeometry()
+        except Exception:
+            pass
+
+    def sizeHint(self):
+        # 根據內部 label 的 sizeHint 計算高度，避免內容被截斷
+        hint = super().sizeHint()
+        try:
+            name_hint = self.name.sizeHint().height()
+            dur_hint = self.duration_text.sizeHint().height()
+            h = max(self.minimumHeight(), 12 + name_hint + dur_hint)
+            hint.setHeight(h)
+        except Exception:
+            pass
+        return hint
 
     def background_color(self, degree):
         if degree == "high":
@@ -87,64 +140,47 @@ class TaskWidget(QWidget):
         self.setStyleSheet(f"""
             background-color: {color};
             border: none;
-            border-radius: 20px;
+            border-radius: 10px;
         """)
 
     def mousePressEvent(self, event):
-        self.clicked.emit()
+        # 以 signal 傳回 task_id
+        self.edit_requested.emit(self.task_id)
         super().mousePressEvent(event)
 
-    def open_edit_overlay(self, task_id):
-        main_window = self.window()   # 抓最上層的 MainWindow
-        overlay = EditTaskOverlay(main_window, task_id, self.section_key, self.task_controller)
-        overlay.show()
-
     def toggle_completed(self, state):
-        is_checked = (state == Qt.Checked)   # True/False
+        is_checked = (state == Qt.Checked)
         self.finish_state = is_checked
-        self.task_controller.update_finish(self.task_id, is_checked)
-        self.task_controller.move_expired_reminders()
-
         font = self.name.font()
         font.setStrikeOut(is_checked)
         self.name.setFont(font)
-
-    # 刪除事件
-    def deletePressEvent(self, task_id):
-        def really_delete():
-            self.task_controller.delete_task(task_id)
-            delete_with_animation(self)
-
-        dialog = ConfirmDialog(self.window() ,message="Are you certain you want to delete this?", dialog_type="confirm", confirm_callback=really_delete)
-        dialog.show()
+        self.finish_toggled.emit(self.task_id, is_checked)
 
     def on_task_updated(self, task_id):
-        if task_id == self.task_id:
-            task_data = next((t for t in self.task_controller.load_reminders()[self.section_key] if t["id"] == task_id), {})
-            self.name.setText(task_data.get("title", self.name.text()))
-            self.duration_text.setText(task_data.get("start_time", self.duration_text.text()))
-            self.background_color(task_data.get("priority", ""))
+        # 可以在這裡 connect event_adapter signal 並更新 UI
+        pass
 
 
 # ClickableWidget 上的按鈕事件
 # 編輯事件頁清單
-class EditTaskOverlay(QWidget):
-    def __init__(self, parent=None, task_id="", section_key = "reminders", task_controller = None):
+class EditTaskOverlay(BaseOverlay):
+
+    comfirmed_requested = pyqtSignal(BaseOverlay)
+    delete_requested = pyqtSignal(str)
+
+    def __init__(self, parent=None, task_id="", event_adapter = None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet("background-color: rgba(0, 0, 0, 120);") 
         self.setGeometry(parent.rect())  
-        self.task_controller = task_controller
-        self.section_key = section_key
+        self.task_id = task_id
+        self.event_adapter = event_adapter
 
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignCenter)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("background-color: transparent; border: none")
+        scroll = create_scroll_area_edit()
         scroll.viewport().setStyleSheet("background: transparent;")
-        scroll.setFixedSize(350, 400)
         main_layout.addWidget(scroll)
 
         container = QWidget()
@@ -156,38 +192,25 @@ class EditTaskOverlay(QWidget):
         """)
         container.setMinimumWidth(450)
 
-        gradually_enter_ani(self, container)
-
         layout = QVBoxLayout(container)
         layout.setAlignment(Qt.AlignTop)
 
         back_btn = QPushButton("◀️")   
         back_btn.setFont(font_setting(18))
-        back_btn.clicked.connect(self.close)
+        def on_back_clicked():
+            gradually_exit_ani(self, duration=500, finished_callback=self.close)
+        back_btn.clicked.connect(on_back_clicked)
 
         upper_layout = QHBoxLayout()
         upper_layout.addWidget(back_btn, alignment=Qt.AlignLeft)
+        
+        task_data = self.event_adapter.get_event_by_id(self.task_id)
 
-        if self.section_key == "expired_reminders":
-            print(self.section_key)
-            trash_button = QPushButton()
-            trash_button.setFixedSize(24, 24) 
-            trash_button.setIcon(QIcon("set_reminder/image/delete.png"))      
-            trash_button.setIconSize(trash_button.size())   
-            trash_button.setStyleSheet("border: none; background: transparent;")
-            trash_button.clicked.connect(lambda: self.deleteAllPressEvent())
-            upper_layout.addWidget(trash_button, alignment=Qt.AlignRight )
-
-        layout.addLayout(upper_layout)
-
-        reminders = self.task_controller.load_reminders()
-        task_data = next((task for task in reminders[self.section_key] 
-                         if task.get("id") == task_id), {})
-        self.task_id = task_data.get("id", "")
+        layout.addLayout(upper_layout)       
         
         self.title_label = QLabel("title:")
         self.title_label.setFont(font_setting(10))
-        self.title_edit = QLineEdit(task_data.get("title", ""))
+        self.title_edit = QLineEdit(task_data["title"])
         self.title_edit.setFont(font_setting(10))
         self.title_edit.setPlaceholderText("new title")
         self.title_edit.setStyleSheet("""
@@ -208,7 +231,7 @@ class EditTaskOverlay(QWidget):
         self.type_box = QComboBox()
         self.type_box.setFont(font_setting(10))
         self.type_box.addItems(["work", "life", "finance", "other"])
-        self.type_box.setCurrentText(task_data.get("type", ""))
+        self.type_box.setCurrentText(task_data["type"])
         type_layout = QHBoxLayout()
         type_layout.addWidget(self.type_label)
         type_layout.addWidget(self.type_box)
@@ -219,7 +242,7 @@ class EditTaskOverlay(QWidget):
         self.start_time = QDateTimeEdit()
         self.start_time.setFont(font_setting(10))
         self.start_time.setDisplayFormat("yyyy-MM-dd hh:mm")
-        if task_data.get("start_time"):
+        if task_data["start_time"]:
             self.start_time.setDateTime(QDateTime.fromString(task_data["start_time"], "yyyy-MM-dd hh:mm"))
         self.start_time.setFont(font_setting(10))
         start_time_layout = QHBoxLayout()
@@ -233,7 +256,7 @@ class EditTaskOverlay(QWidget):
         self.end_time.setFont(font_setting(10))
         self.end_time.setDisplayFormat("yyyy-MM-dd hh:mm")
 
-        if task_data.get("end_time"):
+        if task_data["end_time"]:
             self.end_time.setDateTime(QDateTime.fromString(task_data["end_time"], "yyyy-MM-dd hh:mm"))
         end_time_layout = QHBoxLayout()
         end_time_layout.addWidget(self.end_time_label)
@@ -248,7 +271,7 @@ class EditTaskOverlay(QWidget):
         self.desc_label = QLabel("describle")
         self.desc_label.setFont(font_setting(10))
 
-        self.desc_edit = create_text_edit(self, task_data.get("description", ""))
+        self.desc_edit = create_text_edit(self, task_data.get("description",""))
         self.desc_edit.setFont(font_setting(10))
         self.desc_edit.setPlaceholderText("輸入任務描述...")
 
@@ -260,7 +283,7 @@ class EditTaskOverlay(QWidget):
         self.priority_box = QComboBox()
         self.priority_box.setFont(font_setting(10))
         self.priority_box.addItems(["high", "medium", "low"])
-        self.priority_box.setCurrentText(task_data.get("priority", "medium"))
+        self.priority_box.setCurrentText(task_data.get("priority","medium"))
 
         priority_layout = QHBoxLayout()
         priority_layout.addWidget(self.priority_label)
@@ -284,8 +307,7 @@ class EditTaskOverlay(QWidget):
         self.alert_combo1 = QComboBox()
         self.alert_combo1.setFont(font_setting(10))
         self.alert_combo1.addItems(remind_options)
-        self.alert_combo1.setCurrentText(task_data.get("alert1", ""))
-
+        self.alert_combo1.setCurrentText(task_data.get("alert1","None"))
         alert_layout1 =QHBoxLayout()
         alert_layout1.addWidget(self.alert_label1)
         alert_layout1.addWidget(self.alert_combo1)
@@ -296,7 +318,7 @@ class EditTaskOverlay(QWidget):
         self.alert_combo2 = QComboBox()
         self.alert_combo2.setFont(font_setting(10))
         self.alert_combo2.addItems(remind_options)
-        self.alert_combo2.setCurrentText(task_data.get("alert2", ""))
+        self.alert_combo2.setCurrentText(task_data.get("alert2", "None"))
         alert_layout2 =QHBoxLayout()
         alert_layout2.addWidget(self.alert_label2)
         alert_layout2.addWidget(self.alert_combo2)
@@ -338,29 +360,8 @@ class EditTaskOverlay(QWidget):
             self.task_controller.add_reminder(task)
             self.task_controller.move_expired_reminders()
 
-    def deleteAllPressEvent(self):
-
-        def really_delete():
-
-            self.task_controller.delete_all_tasks()
-
-            parent_layout = self.parentWidget().layout()
-            if parent_layout is not None:
-                # 遍歷 layout 裡所有 widget
-                for i in reversed(range(parent_layout.count())):
-                    widget = parent_layout.itemAt(i).widget()
-                    if widget is None:
-                        continue
-
-                    delete_with_animation(widget)
-
-        dialog = ConfirmDialog(
-            self.window(),
-            message="Are you certain you want to delete ALL tasks?",
-            dialog_type="confirm",
-            confirm_callback=really_delete
-        )
-        dialog.show()
+    def showEvent(self, event):
+        super().showEvent(event)
 
 def create_new_task_id(task_type:str):
     timestamp = int(time.time() * 1000)  # 毫秒級時間戳

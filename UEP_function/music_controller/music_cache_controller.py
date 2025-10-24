@@ -13,6 +13,7 @@ class MusicCache:
         self.extensions = extensions
         self.data = {"songs": {}, "folders": {}}
         self._load_cache()
+        self.name_to_path = {meta["name"].lower(): full_path for full_path, meta in self.data["songs"].items()}
 
     def _load_cache(self):
         if os.path.exists(CACHE_FILE):
@@ -41,6 +42,8 @@ class MusicCache:
                 full_path = os.path.join(folder, file)
                 self.data["songs"][full_path] = {"name": file, "folder": folder}
                 music_files.append(file)
+                self.name_to_path[file.lower()] = full_path
+
         self.data["folders"][folder] = music_files
         self._save_cache()
         print(f"📂 已索引資料夾 {folder}, 共 {len(music_files)} 首歌")
@@ -50,13 +53,11 @@ class MusicCache:
 
         keyword = keyword.lower()
 
-        # 搜尋索引資料夾來找歌
-        if folder and folder in self.data["folders"]:
-            for file in self.data["folders"][folder]:
-                if keyword in file.lower(): 
-                    full_path = os.path.join(folder, file)
-                    print(f"✅ 在資料夾 {folder} 找到: {full_path}")
-                    return full_path  
+        # 單首快取搜尋
+        for name, path in self.name_to_path.items():
+            if keyword in name:  # 部分匹配
+                print(f"✅ 快取索引命中（包含）: {path}")
+                return path
 
         song_map = {meta["name"].lower(): full_path for full_path, meta in self.data["songs"].items()}
 
@@ -88,7 +89,7 @@ class MusicCache:
         updateed = False
         folders_to_remove = []
         
-        for folder, cached_files in list(self.data["folders"]):
+        for folder, cached_files in list(self.data["folders"].items()):
             if not os.path.exists(folder):
                 print(f"⚠️ 資料夾已刪除: {folder}")
                 folders_to_remove.append(folder)

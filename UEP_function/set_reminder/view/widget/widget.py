@@ -1,7 +1,7 @@
 ﻿from PyQt5.QtGui import QColor, QFont, QFontDatabase
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QLabel, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
 from PyQt5.QtWidgets import QPushButton
-from set_reminder.right_click_btn import RightClickButton
+from set_reminder.view.widget.right_click_btn import RightClickButton
 
 
 def create_button_edit(parent, text, color):
@@ -110,3 +110,50 @@ def create_text_edit(parent, placeholder):
     cust_font = font_setting(10)
     line_edit.setFont(cust_font)
     return line_edit
+
+def create_date_button_edit():
+    date_button = QPushButton()
+    date_button.setStyleSheet("""
+        QPushButton {
+            background: transparent;
+            color: #464634;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            }
+        QPushButton:hover {
+            color: #363432;
+            border: 1px solid #4A90E2;
+        }
+        """)
+    cust_font = font_setting(9)
+    date_button.setFont(cust_font)
+    date_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+    return date_button
+
+def create_scroll_area_edit():
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setStyleSheet("""
+        QScrollArea {
+            border: none;
+            background: transparent;
+        }
+        QScrollBar:vertical {
+            width: 8px;
+            background: transparent;
+        }
+        QScrollBar::handle:vertical {
+            background: #aaa;
+            border-radius: 4px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #888;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0;
+        }
+    """)
+    scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    return scroll

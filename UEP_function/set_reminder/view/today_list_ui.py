@@ -2,20 +2,28 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from set_reminder.animate import gradually_enter_ani
-from set_reminder.edit_overlay import TaskWidget
-from set_reminder.gray_background_overlay import TypeTaskOverlay
-from set_reminder.widget import create_picture_button_edit, create_tag_button_edit, create_title_label_edit, font_setting
-from set_reminder.record_controller import TaskController
+
+from set_reminder.view.overlay.edit_overlay import TaskWidget
+from set_reminder.view.widget.widget import create_picture_button_edit, create_tag_button_edit, create_title_label_edit, font_setting
 import datetime
 
 class TodayListUI(QWidget):
     switch_page = QtCore.pyqtSignal(int)
 
-    def __init__(self):
+    def __init__(self, event_adapter = None, overlay_ctrl = None):
         super().__init__()
+        self.event_adapter = event_adapter
+        self.overlay_controller = overlay_ctrl
         self.title_text = create_title_label_edit(self,"Today List")
         self.expired_button  = create_picture_button_edit(self, "set_reminder/image/expired.png", "set_reminder/image/expired_hover.png", 40)
-        self.expired_button.clicked.connect(self.expired_page)
+        self.expired_button.clicked.connect(lambda: self.overlay_controller.show(
+            "task_overlay",
+            parent = self.window(),
+            mode = "past", 
+            task_type = None,
+            date_filter = None,
+            event_adapter = self.event_adapter
+           ))
         self.date_subtitle = QLabel(self)   
 
         self.today_button = create_tag_button_edit(self,"today")
@@ -24,6 +32,7 @@ class TodayListUI(QWidget):
         self.sorting_button = create_tag_button_edit(self, "sorting")
         self.sorting_button.clicked.connect(lambda: self.switch_page.emit(1))
         self.calendar_button = create_tag_button_edit(self, "calendar")
+        self.calendar_button.clicked.connect(lambda: self.switch_page.emit(2))
         
         self.list_frame = QFrame()        
         self.list_frame.setFrameShape(QFrame.NoFrame)
@@ -47,13 +56,13 @@ class TodayListUI(QWidget):
         self.list_layout = QVBoxLayout()
         self.list_layout.setAlignment(Qt.AlignTop | Qt.AlignCenter )
 
-        reminder = TaskController().load_reminders()
+        reminder = self.event_adapter.get_events(datetime.date.today().isoformat())
         today = datetime.date.today().strftime("%Y-%m-%d")
         tasks_added = False
         priority_order = {"high": 0, "medium": 1, "low": 2}
 
         today_tasks = [
-            task for task in reminder["reminders"]
+            task for task in reminder
             if task.get("start_time", "").split(" ")[0] == today
         ]
 
@@ -83,10 +92,7 @@ class TodayListUI(QWidget):
             no_task_label.setAlignment(Qt.AlignCenter)
             self.list_layout.addWidget(no_task_label)
 
-        gradually_enter_ani(self, self.list_frame)
-
-        # 預設載入時啟動動畫
-        self.fade_in_animation.start()
+        gradually_enter_ani(self.list_frame)
                
         self.scroll_area = QScrollArea()
         self.scroll_area.setStyleSheet("background: transparent; border: none;")
@@ -103,6 +109,3 @@ class TodayListUI(QWidget):
         self.list_frame.setLayout(self.list_layout)
         self.setLayout(self.main_layout)
     
-    def expired_page(self):
-        overlay = TypeTaskOverlay(self, "", "expired_reminders")
-        overlay.show()

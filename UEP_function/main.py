@@ -5,12 +5,9 @@ from translate_export import translate_main
 from dialog_box.test_window import start_dialog_box
 from OCR_identity import OCR_main
 from get_world_time import get_world_time_main
-from set_reminder import main_window
-from set_reminder.record_controller import TaskController
+from set_reminder.view import main_window
 
 
-TaskController().move_expired_reminders()
-schedule.every().day.at("00:00").do(TaskController().move_expired_reminders)
 
 num = int(input("輸入 1 進到media control，2 translate，3 dialog_box，4 OCR 辨識，5 各國標準時間，6 set_reminder，7 clean_trash_bin："))
 
