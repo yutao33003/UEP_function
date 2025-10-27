@@ -3,22 +3,32 @@
         {
             "id": "work",
             "type_name": "work",
-            "color": "#C1AE8D"
+            "color": "#7A989A"
         },
         {
             "id": "life",
             "type_name": "life",
-            "color": "#6F7D5C"
+            "color": "#BE7F54"
         },
         {
             "id": "finance",
             "type_name": "finance",
-            "color": "#BE7F54"
+            "color": "#8D91AA"
         },
         {
             "id": "other",
             "type_name": "other",
             "color": "#CF9546"
+        },
+        {
+            "id": "healty",
+            "type_name": "healty",
+            "color": "#C2AF46"
+        },
+        {
+            "id": "festival",
+            "type_name": "festival",
+            "color": "#C67052"
         }
     ]
 }

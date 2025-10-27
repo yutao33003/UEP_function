@@ -76,11 +76,11 @@ class EventAdapter(QObject):
         results = []
 
         for task in group:
-            start = task.get("start_time")
-            if not start:
+            end = task.get("end_time")
+            if not end:
                 continue
             try:
-                dt = datetime.strptime(start[:16], "%Y-%m-%d %H:%M")
+                dt = datetime.strptime(end[:16], "%Y-%m-%d %H:%M")
                 if dt.date() < base:
                     results.append(self._normalize_task(task))
             except Exception:
@@ -100,34 +100,34 @@ class EventAdapter(QObject):
 
 
     # --------- 修改方法 ----------
-    def add_event(self, iso_date: str, event_data: Dict) -> Dict:
+    def add_event(self, event_data: Dict) -> Dict:
         """
         event_data 可以包含 title, start_time, end_time, finish...
-        我們會確保放入一個唯一 id，並呼叫 task_ctrl.add_reminder(reminder)
-        回傳新增的完整事件 dict
+        自動從 start_time 取出 iso_date。
         """
-        # 建立合規的 reminder dict
+        from datetime import datetime
         new_id = event_data.get("id") or str(uuid4())
         reminder = event_data.copy()
         reminder["id"] = new_id
 
-        # 若沒有 start_time，試著把 iso_date 放到 start_time（預設 09:00）
-        if "start_time" not in reminder or not reminder.get("start_time"):
+        # 嘗試自動取得 iso_date
+        if "start_time" in reminder and reminder["start_time"]:
+            iso_date = reminder["start_time"][:10]
+        else:
+            # 若沒指定 start_time，用今天日期
+            iso_date = datetime.now().strftime("%Y-%m-%d")
             reminder["start_time"] = f"{iso_date} 09:00"
-        # 若沒有 end_time，可以選擇不填或設為同日稍晚
+
         if "end_time" not in reminder or not reminder.get("end_time"):
             reminder["end_time"] = f"{iso_date} 10:00"
 
-        # optional: finish 預設 False
         if "finish" not in reminder:
             reminder["finish"] = False
 
-        # 使用你的 controller 新增
         self.task_ctrl.add_reminder(reminder)
-
-        # adapter 立刻 emit 通知（emit 該日期）
         self.events_updated.emit(iso_date)
         return self._normalize_task(reminder)
+
 
     def remove_event(self, event_id: str):
         """
@@ -234,6 +234,7 @@ class EventAdapter(QObject):
             "type": task.get("type"),
             "start_time": task.get("start_time"),
             "end_time": task.get("end_time"),
+            "description": task.get("description"),
             "finish": task.get("finish", False),
             "priority": task.get("priority"),
             "raw": task  # 保留原始物件，方便進一步操作

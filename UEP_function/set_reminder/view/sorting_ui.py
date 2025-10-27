@@ -6,8 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from set_reminder.animate import gradually_enter_ani
 from set_reminder.view.widget.widget import (
-    create_button_edit, create_picture_button_edit, 
-    create_title_label_edit, create_tag_button_edit
+    create_picture_button_edit, create_title_label_edit, create_tag_button_edit, create_button_edit, create_type_button_edit
 )
 
 
@@ -209,7 +208,7 @@ class SortingUI(QWidget):
             type_name = type_info.get("type_name") or type_info.get("title_name") or ""
             color = type_info.get("color", "")
             
-            button = create_button_edit(self, type_name, color)
+            button = create_type_button_edit(type_name, color, parent = self)
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             
             # 連接信號
@@ -232,7 +231,14 @@ class SortingUI(QWidget):
 
     def exit_edit_type_page(self, type_name, type_color):
         main_window = self.window()
-        # TODO: Implement type card editing
+        add_type_overlay = self.overlay_controller.show(
+            "type_edit_overlay",
+            parent=main_window,
+            title=type_name,
+            color=type_color,
+            type_controller = self.type_controller
+        )
+        add_type_overlay.save_signal.connect(lambda : self.reload_type_buttons())
 
 
 

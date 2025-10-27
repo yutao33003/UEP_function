@@ -10,19 +10,22 @@ import datetime
 class TodayListUI(QWidget):
     switch_page = QtCore.pyqtSignal(int)
 
-    def __init__(self, event_adapter = None, overlay_ctrl = None):
+    def __init__(self, event_adapter = None, overlay_ctrl = None, type_controller = None):
         super().__init__()
         self.event_adapter = event_adapter
         self.overlay_controller = overlay_ctrl
+        self.type_controller = type_controller
         self.title_text = create_title_label_edit(self,"Today List")
         self.expired_button  = create_picture_button_edit(self, "set_reminder/image/expired.png", "set_reminder/image/expired_hover.png", 40)
         self.expired_button.clicked.connect(lambda: self.overlay_controller.show(
             "task_overlay",
-            parent = self.window(),
+            embedded = False,
+            parent = self,
             mode = "past", 
             task_type = None,
             date_filter = None,
-            event_adapter = self.event_adapter
+            event_adapter = self.event_adapter,
+            type_controller = self.type_controller
            ))
         self.date_subtitle = QLabel(self)   
 
@@ -56,15 +59,9 @@ class TodayListUI(QWidget):
         self.list_layout = QVBoxLayout()
         self.list_layout.setAlignment(Qt.AlignTop | Qt.AlignCenter )
 
-        reminder = self.event_adapter.get_events(datetime.date.today().isoformat())
-        today = datetime.date.today().strftime("%Y-%m-%d")
+        today_tasks = self.event_adapter.get_events(datetime.date.today().isoformat())
         tasks_added = False
         priority_order = {"high": 0, "medium": 1, "low": 2}
-
-        today_tasks = [
-            task for task in reminder
-            if task.get("start_time", "").split(" ")[0] == today
-        ]
 
         today_tasks.sort(key=lambda t: priority_order.get(t.get("priority", "low"), 3))
 
@@ -76,6 +73,27 @@ class TodayListUI(QWidget):
             task_id = task.get("id")
 
             self.task_button = TaskWidget(degree, title, start_time, finish_state, task_id, "reminders", self)
+
+            self.task_button.edit_requested.connect(
+                lambda tid: self.overlay_controller.show(
+                "edit_overlay",
+                task_id=tid,
+                event_adapter=self.event_adapter,
+                type_controller = self.type_controller,
+                parent=self
+                )
+            )
+
+            self.task_button.delete_requested.connect(
+                lambda task_id: self.overlay_controller.show(
+                    "confirm_overlay",
+                    message="Are you sure you want to delete this?",
+                    dialog_type="confirm",
+                    confirm_callback=lambda: self.delete_task(task_id),
+                    parent=self
+                )
+            )
+
             self.list_layout.addWidget(self.task_button)
             tasks_added = True
         

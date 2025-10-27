@@ -23,11 +23,7 @@ class CalendarController:
         pass
 
     def on_add_requested(self, iso_date):
-        # demo：直接新增一個簡單事件
-        new = {"id": f"evt-{iso_date}-{len(self.adapter.get_events(iso_date))+1}", "title": "New item"}
-        self.adapter.add_event(iso_date, new)
-        # 重新載入
-        self.on_date_selected(iso_date)
+       pass
 
     def on_remove_requested(self, iso_date, event_id):
         self.adapter.remove_event(iso_date, event_id)

@@ -1,4 +1,5 @@
 ﻿import datetime
+from tarfile import data_filter
 from PyQt5.QtCore import QTimer, Qt, QRectF, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPainterPath, QPixmap, QRegion
 from PyQt5.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSizePolicy, QStyledItemDelegate, QVBoxLayout, QWidget
@@ -11,7 +12,7 @@ from set_reminder.view.overlay.edit_overlay import ConfirmDialog, TaskWidget
 class TypeTaskOverlay(BaseOverlay):
     edit_task_requested = pyqtSignal(str)
 
-    def __init__(self, mode: str, task_type: str, date_filter = None, event_adapter = None, embedded = False, parent=None):
+    def __init__(self, mode: str, task_type: str, date_filter = None, event_adapter = None, type_controller = None, embedded = False, parent=None):
         super().__init__(parent)
         # 1. 確保不會跑到視窗外
         self.setWindowFlags(Qt.Widget)
@@ -47,6 +48,7 @@ class TypeTaskOverlay(BaseOverlay):
         content_layout.addWidget(self.content_area)
 
         # 基本屬性設置
+        self.type_controller =type_controller
         self.event_adapter = event_adapter
         self.embedded = embedded
         self.task_type = task_type
@@ -76,10 +78,13 @@ class TypeTaskOverlay(BaseOverlay):
 
         # 10. 尺寸策略
         if embedded:
-            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            # 嵌入式 → 讓 layout 控制大小，不強制填滿
+            self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
             if parent:
                 self.setGeometry(parent.rect())
+
         else:
+            # 非嵌入式 → 仍然覆蓋整個視窗
             window = self.window()
             if window:
                 self.setGeometry(window.rect())
@@ -98,22 +103,27 @@ class TypeTaskOverlay(BaseOverlay):
             parent=self.container
         )
 
-        # 使用 BaseOverlay 的 open_child_overlay，parent 給 self（overlay）讓子 overlay 疊在此 overlay 之上
-        task_widget.edit_requested.connect(
-            lambda tid: self.open_child_overlay(
+        def open_edit_overlay(tid):
+            edit_overlay = self.open_child_overlay(
                 "edit_overlay",
                 task_id=tid,
                 event_adapter=self.event_adapter,
+                type_controller = self.type_controller,
                 parent=self
             )
-        )
+            # ✅ 訊號連線（這裡 edit_overlay 是真正的物件）
+            edit_overlay.confirmed_requested.connect(
+                lambda task_data: task_widget.on_task_updated(task_data)
+            )
+
+        task_widget.edit_requested.connect(lambda tid: open_edit_overlay(tid))
 
         task_widget.delete_requested.connect(
             lambda task_id: self.open_child_overlay(
                 "confirm_overlay",
                 message="Are you sure you want to delete this?",
                 dialog_type="confirm",
-                confirm_callback=lambda: self.delete_task(task_id),
+                confirm_callback=lambda tid=task_id: self.delete_task(tid),
                 parent=self
             )
         )
@@ -198,10 +208,22 @@ class TypeTaskOverlay(BaseOverlay):
 
         QTimer.singleShot(0, self.update_font_scale)
 
+
     def delete_task(self, task_id):
+        # 找到對應 TaskWidget
+        task_widget_to_delete = None
+        for widget in self.task_widget_set:
+            if getattr(widget, "task_id", None) == task_id:
+                task_widget_to_delete = widget
+                break
+
+        if task_widget_to_delete:
+            delete_with_animation(task_widget_to_delete)
+            self.task_widget_set.remove(task_widget_to_delete)
+
         self.event_adapter.remove_event(task_id)
-        delete_with_animation(self.task_widget)
-        self.refresh_data(mode="past")
+        self.refresh_data(mode=self.mode)
+
 
     def delete_all_past_task(self):
         """刪除所有過期任務，但不關閉 overlay"""
@@ -259,6 +281,8 @@ class TypeTaskOverlay(BaseOverlay):
                     new_size = base_size * scale
                     if new_size < 8:
                         new_size = 8
+                    elif new_size>10:
+                        new_size = 10
                     font.setPointSizeF(new_size)
                     target.setFont(font)
 
@@ -270,16 +294,36 @@ class TypeTaskOverlay(BaseOverlay):
 
 
 # 新增或刪除事件的類別
-class AddTypeCard(QWidget):
+class AddTypeCard(BaseOverlay):
+    save_signal = pyqtSignal()
+
     def __init__(self, title : str, color : str, type_controller = None, parent = None):
         super().__init__(parent)
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 120);") 
+        self.setWindowFlags(Qt.Widget)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setStyleSheet("background-color: transparent;") 
         self.setGeometry(parent.rect()) 
+
         self.color = color
         self.type_controller = type_controller
+
+        # 背景層
+        self.overlay_bg = QFrame(self)
+        self.overlay_bg.setStyleSheet("""
+            QFrame {
+                background-color: rgba(0, 0, 0, 120);
+                border-radius: 10px;
+            }
+        """)
+        self.overlay_bg.setGeometry(self.rect())
+
+        # 主 layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.overlay_bg)
         
-        container = QFrame()
+        container = QFrame(self.overlay_bg)
         container.setStyleSheet("""
             QFrame {
                 background-color: #E4DCCF; 
@@ -331,8 +375,9 @@ class AddTypeCard(QWidget):
         self.color_layout.addWidget(self.color_label)
         self.color_layout.addWidget(self.color_combo)
         
-        self.save_button = create_button_edit(self, "save", "#7D9D9C")
+        self.save_button = create_button_edit("save", "#7D9D9C", parent=self.overlay_bg)
         self.save_button.setFixedWidth(100)
+        self.save_button.setFont(font_setting(10))
         self.save_button.clicked.connect(self.save_type)
         self.button_layout = QHBoxLayout()
         self.button_layout.setSpacing(20)
@@ -340,12 +385,13 @@ class AddTypeCard(QWidget):
         self.button_layout.setAlignment(Qt.AlignCenter)
 
         if title != "":
-            self.delete_button = create_button_edit(self, "delete", "#df6262")
+            self.delete_button = create_button_edit("delete", "#df6262", parent=self)
             self.delete_button.setFixedWidth(100)
+            self.delete_button.setFont(font_setting(10))
             self.button_layout.addWidget(self.delete_button)
             self.delete_button.clicked.connect(lambda _title :self.delete_type(title))
 
-        main_layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self.overlay_bg)
         main_layout.addWidget(container, alignment=Qt.AlignCenter)
         layout = QVBoxLayout(container)
         layout.setAlignment(Qt.AlignTop)
@@ -385,16 +431,26 @@ class AddTypeCard(QWidget):
 
         if hasattr(self, "delete_button") and self.delete_button is not None:
             self.type_controller.update_type(new_type)
+            self.save_signal.emit()
             self.close()
         else:
             if self.type_name_line_edit.text() == "" :
-                dialog = ConfirmDialog(self.window(), message = "Title cannot be empty.", dialog_type = "notify")
-                dialog.show()
+                self.open_child_overlay(
+                    "confirm_overlay",
+                    parent=self.window(),
+                    message = "Title cannot be empty.",
+                    dialog_type = "notify"
+                    )
             elif self.type_controller.has_same_id (new_type):
-                dialog = ConfirmDialog(self.window(), message = "A card with the same category already exists. Please rename it.", dialog_type = "notify")
-                dialog.show()
+                self.open_child_overlay(
+                    "confirm_overlay",
+                    parent=self.window(),
+                    message = "A card with the same category already exists. Please rename it.",
+                    dialog_type = "notify"
+                    )
             else:
                 self.type_controller.add_type(new_type)
+                self.save_signal.emit()
                 self.close()
 
     def delete_type(self, type_id):
@@ -405,6 +461,7 @@ class AddTypeCard(QWidget):
             }
         if self.type_controller.has_same_id(delete_type) :
             self.type_controller.delete_type(type_id)
+            self.close()
         else:
             print("can't find the type")
 

@@ -42,11 +42,3 @@ class CalendarModel:
             self.month = 1; self.year += 1
         else:
             self.month += 1
-
-if __name__ == "__main__":
-    m = CalendarModel(2024, 6)
-    mat = m.get_month_matrix()
-
-    print(mat)
-    for row in mat:
-        print(" | ".join(f"{c.date.day if c.date else '':2}" for c in row))

@@ -1,10 +1,10 @@
 ﻿from PyQt5.QtGui import QColor, QFont, QFontDatabase
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QLabel, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QFrame, QGraphicsDropShadowEffect, QLabel, QPushButton, QScrollArea, QSizePolicy, QTextEdit
 from PyQt5.QtWidgets import QPushButton
 from set_reminder.view.widget.right_click_btn import RightClickButton
 
 
-def create_button_edit(parent, text, color):
+def create_type_button_edit(text, color,parent = None):
     button = RightClickButton(parent)
     button.setText(text)
     hover_color = adjust_color(color)
@@ -27,6 +27,24 @@ def create_button_edit(parent, text, color):
     shadow.setOffset(3, 3)
     shadow.setColor(QColor(0, 0, 0, 120))
     button.setGraphicsEffect(shadow)
+    return button
+
+def create_button_edit(text, color, parent=None):
+    button = QPushButton(parent=parent)
+    button.setText(text)
+    hover_color = adjust_color(color)
+    button.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {color};
+            color: white;
+            border-radius: 10px;
+            padding: 8px;
+        }}
+        QPushButton:hover {{
+            background-color: {hover_color};
+        }}
+    """)
+ 
     return button
 
 def adjust_color(color_code, factor = 0.8):
@@ -95,8 +113,11 @@ def font_setting(font_size):
         cust_font = QFont(font_families[0], font_size)
     return cust_font
 
-def create_text_edit(parent, placeholder):
-    line_edit = QTextEdit(placeholder)
+def create_text_edit(parent, text: str, placeholder:str):
+    line_edit = QTextEdit()
+    line_edit.setPlaceholderText(placeholder)
+    if text and text.strip():
+        line_edit.setText(text)
     line_edit.setStyleSheet("""
         QTextEdit {
             border: 1px solid #ccc;

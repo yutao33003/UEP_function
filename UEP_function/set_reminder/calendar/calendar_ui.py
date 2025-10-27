@@ -13,23 +13,23 @@ from set_reminder.view.widget.widget import create_tag_button_edit, create_title
 class CalendarUI(QWidget):
     switch_page = pyqtSignal(int)
 
-    def __init__(self, event_adapter = None, overlay_ctrl = None):
+    def __init__(self, event_adapter = None, overlay_ctrl = None, type_controller = None):
         super().__init__()
-        self._init_models_and_controllers(event_adapter, overlay_ctrl)
+        self._init_models_and_controllers(event_adapter, overlay_ctrl, type_controller)
         self._build_ui()
         self._connect_signals()
         self.current_date = None
     
-    def _init_models_and_controllers(self, event_adapter, overlay_ctrl):
+    def _init_models_and_controllers(self, event_adapter, overlay_ctrl, type_controller):
         self.model = CalendarModel()
         self.event_adapter = event_adapter
         self.overlay_controller = overlay_ctrl
+        self.type_controller = type_controller
   
         self.calendar_widget = CalendarWidget(self.model)
-        self.event_list_widget = EventListWidget(self.event_adapter, self.overlay_controller)
+        self.event_list_widget = EventListWidget(self.event_adapter, self.overlay_controller, self.type_controller)
         self.controller = CalendarController(
-            self.model, self.calendar_widget, self.event_adapter, self.event_list_widget
-        )
+            self.model, self.calendar_widget, self.event_adapter, self.event_list_widget)
 
     def _build_ui(self):
         self.title_text = create_title_label_edit(self,"Today List")
@@ -72,15 +72,36 @@ class CalendarUI(QWidget):
         """當使用者點選某日時，顯示該日的事件"""
         self.event_list_widget.show_events(iso_date)
 
-    def on_add_event(self, iso_date):
-        """當使用者要求新增事件時，這裡可以彈出對話框讓使用者輸入事件細節"""
-        # 這裡簡單示範直接新增一個預設事件
-        new_event = {
-            "title": "New Event",
-            "start_time": f"{iso_date} 10:00",
-            "end_time": f"{iso_date} 11:00",
-            "finish": False
-        }
-        self.event_adapter.add_event(iso_date, new_event)
-        # 重新載入該日事件
-        self.on_date_selected(iso_date)
+    def on_add_event(self, iso_date, overlay=None):
+        """當使用者要求新增事件時，優先在嵌入的 TypeTaskOverlay 上開 child edit_overlay，
+        避免使用 overlay_controller.show 直接關閉/替換嵌入 overlay。
+        """
+        # 1) 優先嘗試讓嵌入的 overlay (self.event_list_widget.lst) 開 child overlay
+        try:
+            lst = getattr(self.event_list_widget, "lst", None)
+            if lst and hasattr(lst, "open_child_overlay"):
+                lst.open_child_overlay(
+                    "edit_overlay",
+                    parent=lst,
+                    task_id="",
+                    iso_date=iso_date,
+                    event_adapter=self.event_adapter
+                )
+                return
+        except Exception:
+            pass
+
+        # 2) fallback：若沒嵌入 overlay 或無法 open_child_overlay，再使用全域 overlay controller
+        edit_overlay = self.overlay_controller.show(
+            "edit_overlay",
+
+            parent=self.window(),
+            task_id="",
+            iso_date=iso_date,
+            event_adapter=self.event_adapter,
+            type_controller = self.type_controller
+        )
+
+        edit_overlay.confirmed_requested.connect(lambda tid: self.event_list_widget.show_events(iso_date=iso_date))
+        
+        
