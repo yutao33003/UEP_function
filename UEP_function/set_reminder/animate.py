@@ -3,9 +3,6 @@ from PyQt5.QtWidgets import QGraphicsOpacityEffect
 
 
 def gradually_enter_ani(container, duration=500):
-    """
-    漸入（fade in）某個 container（通常為內容 widget，不是整個遮罩）。
-    """
     effect = QGraphicsOpacityEffect(container)
     container.setGraphicsEffect(effect)
     effect.setOpacity(0.0)
@@ -16,15 +13,11 @@ def gradually_enter_ani(container, duration=500):
     animation.setEndValue(1.0)
     animation.setEasingCurve(QEasingCurve.InOutQuad)
 
-    # 保持參考，避免被 GC
     container._fade_in_animation = animation
     animation.start()
 
 
 def gradually_exit_ani(container, duration=800, finished_callback=None):
-    """
-    漸出（fade out），動畫結束後可執行 callback（例如 close）。
-    """
     effect = container.graphicsEffect()
     if not effect or not isinstance(effect, QGraphicsOpacityEffect):
         effect = QGraphicsOpacityEffect(container)
@@ -45,51 +38,105 @@ def gradually_exit_ani(container, duration=800, finished_callback=None):
 
 
 def delete_with_animation(widget, on_deleted=None):
-    anim_group = QParallelAnimationGroup(widget)
-
-    # 淡出動畫（視窗 opacity）
-    opacity_anim = QPropertyAnimation(widget, b"windowOpacity")
-    opacity_anim.setDuration(300)
-    opacity_anim.setStartValue(1.0)
-    opacity_anim.setEndValue(0.0)
-    anim_group.addAnimation(opacity_anim)
-
-    # 收縮動畫（最大高度）
-    size_anim = QPropertyAnimation(widget, b"maximumHeight")
-    size_anim.setDuration(300)
-    size_anim.setStartValue(widget.height())
-    size_anim.setEndValue(0)
-    size_anim.setEasingCurve(QEasingCurve.InOutCubic)
-    anim_group.addAnimation(size_anim)
-
-    def on_finished():
-        parent_layout = widget.parentWidget().layout()
-        if parent_layout is not None:
-            parent_layout.removeWidget(widget)
-        widget.setParent(None)
-        widget.deleteLater()
+    """
+    安全地對 widget 做淡出 + 高度收縮動畫，動畫結束後移除並 deleteLater。
+    若 widget 已被底層刪除或在建立動畫時發生錯誤，會 fallback 為同步移除並呼叫 on_deleted。
+    """
+    if widget is None:
         if on_deleted:
             on_deleted()
+        return
 
-    anim_group.finished.connect(on_finished)
+    # 快速檢查：若 wrapper 已被底層刪除（訪問 parentWidget 會 raise），則 fallback
+    try:
+        _ = widget.parentWidget()
+    except RuntimeError:
+        # 已被刪除或不可存取
+        try:
+            if on_deleted:
+                on_deleted()
+        except Exception:
+            pass
+        return
+
+    # 選一個安全的 parent 當作 animation group 的父物件（避免直接以被刪除的 widget 當父）
+    try:
+        anim_parent = widget.parentWidget() or widget.window() or None
+    except Exception:
+        anim_parent = None
+
+    try:
+        anim_group = QParallelAnimationGroup(anim_parent)
+    except Exception:
+        anim_group = QParallelAnimationGroup()
+
+    # 建立兩個動畫；任何時候若 widget 在建立動畫時被刪除，會捕捉例外並作 fallback
+    try:
+        opacity_anim = QPropertyAnimation(widget, b"windowOpacity")
+        opacity_anim.setDuration(300)
+        opacity_anim.setStartValue(1.0)
+        opacity_anim.setEndValue(0.0)
+        anim_group.addAnimation(opacity_anim)
+
+        size_anim = QPropertyAnimation(widget, b"maximumHeight")
+        size_anim.setDuration(300)
+        size_anim.setStartValue(widget.height())
+        size_anim.setEndValue(0)
+        size_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        anim_group.addAnimation(size_anim)
+    except Exception:
+        # widget 可能在此刻被刪除，作同步清理並呼叫 callback
+        try:
+            parent_layout = widget.parentWidget().layout()
+            if parent_layout is not None:
+                parent_layout.removeWidget(widget)
+        except Exception:
+            pass
+        try:
+            widget.setParent(None)
+            widget.deleteLater()
+        except Exception:
+            pass
+        if on_deleted:
+            try:
+                on_deleted()
+            except Exception:
+                pass
+        return
+
+    def _on_finished():
+        try:
+            parent_layout = widget.parentWidget().layout()
+            if parent_layout is not None:
+                parent_layout.removeWidget(widget)
+        except Exception:
+            pass
+        try:
+            widget.setParent(None)
+            widget.deleteLater()
+        except Exception:
+            pass
+        if on_deleted:
+            try:
+                on_deleted()
+            except Exception:
+                pass
+
+    anim_group.finished.connect(_on_finished)
+    # 保留 reference 防止被 GC
+    try:
+        widget._delete_anim = anim_group
+    except Exception:
+        pass
     anim_group.start()
 
 
 def slide_stack(stack, new_index, direction='left', duration=500):
-    """
-    使用左右滑動在 QStackedWidget 中切換頁面。
-    - stack: QStackedWidget
-    - new_index: 目標 index
-    - direction: 'left' (新頁由右往左進入) 或 'right' (新頁由左往右進入)
-    會自動處理 widget 的位置與動畫，動畫結束後設置 stack.currentIndex(new_index)。
-    """
     if not stack:
         return
     cur_index = stack.currentIndex()
     if cur_index == new_index:
         return
-
-    # 取得 widget
     try:
         cur_widget = stack.widget(cur_index)
         new_widget = stack.widget(new_index)
@@ -97,17 +144,13 @@ def slide_stack(stack, new_index, direction='left', duration=500):
         stack.setCurrentIndex(new_index)
         return
 
-    # geometry 與初始位置（在 stack 的座標系）
     stack_rect = stack.geometry()
     w = stack_rect.width()
     h = stack_rect.height()
-
-    # 若大小為 0 則直接切換
     if w == 0 or h == 0:
         stack.setCurrentIndex(new_index)
         return
 
-    # 計算位置（以 stack 客戶區域 (0,0) 為基準）
     if direction == 'left':
         start_new = QPoint(w, 0)
         end_new = QPoint(0, 0)
@@ -119,14 +162,12 @@ def slide_stack(stack, new_index, direction='left', duration=500):
         start_cur = QPoint(0, 0)
         end_cur = QPoint(w, 0)
 
-    # 確保 new_widget geometry 與顯示
     new_widget.setGeometry(0, 0, w, h)
     new_widget.move(start_new)
     new_widget.show()
     new_widget.raise_()
     cur_widget.raise_()
 
-    # 動畫：移動 pos（保持在 stack 的座標系）
     anim_group = QParallelAnimationGroup(stack)
 
     anim_new = QPropertyAnimation(new_widget, b"pos")
@@ -144,19 +185,15 @@ def slide_stack(stack, new_index, direction='left', duration=500):
     anim_group.addAnimation(anim_cur)
 
     def on_finished():
-        # 切換 index 並重置位置
         stack.setCurrentIndex(new_index)
         try:
             new_widget.move(0, 0)
             cur_widget.move(0, 0)
         except Exception:
             pass
-        # 清除暫存動畫引用
         if hasattr(stack, "_slide_animation"):
             delattr(stack, "_slide_animation")
 
     anim_group.finished.connect(on_finished)
-
-    # 保持引用，避免 GC
     stack._slide_animation = anim_group
     anim_group.start()

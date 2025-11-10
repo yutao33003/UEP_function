@@ -9,7 +9,6 @@ class CalendarController:
         # connect signals
         self.widget.date_selected.connect(self.on_date_selected)
         self.widget.month_changed.connect(self.on_month_changed)
-        self.event_list.add_requested.connect(self.on_add_requested)
         self.event_list.remove_requested.connect(self.on_remove_requested)
 
     def on_date_selected(self, iso_date):
@@ -21,9 +20,6 @@ class CalendarController:
     def on_month_changed(self, y, m):
         # 需要時做額外動作（例如 lazy load events）
         pass
-
-    def on_add_requested(self, iso_date):
-       pass
 
     def on_remove_requested(self, iso_date, event_id):
         self.adapter.remove_event(iso_date, event_id)

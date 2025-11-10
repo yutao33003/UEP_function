@@ -1,43 +1,18 @@
 {
     "task": [
         {
-            "title": "光復節",
-            "id": "work_1761552798715",
+            "title": "剪頭髮",
+            "id": "other_1761633986075",
             "type": "work",
-            "start_time": "2025-10-25 09:00",
-            "end_time": "2025-10-25 10:00",
-            "description": "",
-            "priority": "high",
-            "alert1": "None",
-            "alert2": "None",
-            "repeat": false,
-            "finish": false
-        },
-        {
-            "title": "萬聖節",
-            "id": "festival_1761585909130",
-            "type": "festival",
-            "start_time": "2025-10-31 09:00",
-            "end_time": "2025-10-31 10:00",
-            "description": "",
-            "priority": "high",
-            "alert1": "None",
-            "alert2": "None",
-            "repeat": false,
-            "finish": false
-        },
-        {
-            "title": "雙十節",
-            "id": "festival_1761589530364",
-            "type": "festival",
-            "start_time": "2025-10-10 09:00",
-            "end_time": "2025-10-10 10:00",
-            "description": "",
+            "start_time": "2025-09-30 11:00",
+            "end_time": "2025-09-30 11:00",
+            "description": "檢",
             "priority": "low",
             "alert1": "None",
             "alert2": "None",
             "repeat": false,
-            "finish": false
+            "finish": false,
+            "is_new_task": false
         }
     ]
 }

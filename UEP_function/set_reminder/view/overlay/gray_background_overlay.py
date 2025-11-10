@@ -1,18 +1,18 @@
 ﻿import datetime
 from tarfile import data_filter
-from PyQt5.QtCore import QTimer, Qt, QRectF, pyqtSignal
+from PyQt5.QtCore import QTimer, Qt, QRectF, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPainterPath, QPixmap, QRegion
-from PyQt5.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSizePolicy, QStyledItemDelegate, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QSizePolicy, QStyledItemDelegate, QVBoxLayout, QWidget
 from set_reminder.animate import delete_with_animation,gradually_enter_ani, gradually_exit_ani
 from set_reminder.view.overlay.base_overlay import BaseOverlay
 from set_reminder.view.widget.widget import create_button_edit, create_scroll_area_edit, font_setting
-from set_reminder.view.overlay.edit_overlay import ConfirmDialog, TaskWidget
+from set_reminder.view.overlay.edit_overlay import TaskWidget
 
 # 類別卡頁的事件編輯列表
 class TypeTaskOverlay(BaseOverlay):
     edit_task_requested = pyqtSignal(str)
 
-    def __init__(self, mode: str, task_type: str, date_filter = None, event_adapter = None, type_controller = None, embedded = False, parent=None):
+    def __init__(self, mode: str, task_type: str, date_filter = None, event_adapter = None, type_controller = None, task_service = None, is_overlay = False, embedded = False, parent=None):
         super().__init__(parent)
         # 1. 確保不會跑到視窗外
         self.setWindowFlags(Qt.Widget)
@@ -50,6 +50,8 @@ class TypeTaskOverlay(BaseOverlay):
         # 基本屬性設置
         self.type_controller =type_controller
         self.event_adapter = event_adapter
+        self.task_service = task_service
+        self.is_overlay = is_overlay
         self.embedded = embedded
         self.task_type = task_type
         self.date_filter = date_filter or datetime.date.today().isoformat()
@@ -67,7 +69,6 @@ class TypeTaskOverlay(BaseOverlay):
         self.container.setStyleSheet("background-color: transparent; border-radius: 10px;")
         self.scroll_layout = QVBoxLayout(self.container)
         self.scroll_layout.setAlignment(Qt.AlignTop)
-        self.scroll_layout.setSpacing(10)
         
         # 9. 設置佈局
         content_layout = QVBoxLayout(self.content_area)
@@ -103,20 +104,7 @@ class TypeTaskOverlay(BaseOverlay):
             parent=self.container
         )
 
-        def open_edit_overlay(tid):
-            edit_overlay = self.open_child_overlay(
-                "edit_overlay",
-                task_id=tid,
-                event_adapter=self.event_adapter,
-                type_controller = self.type_controller,
-                parent=self
-            )
-            # ✅ 訊號連線（這裡 edit_overlay 是真正的物件）
-            edit_overlay.confirmed_requested.connect(
-                lambda task_data: task_widget.on_task_updated(task_data)
-            )
-
-        task_widget.edit_requested.connect(lambda tid: open_edit_overlay(tid))
+        task_widget.edit_requested.connect(self._on_edit_task_requested)
 
         task_widget.delete_requested.connect(
             lambda task_id: self.open_child_overlay(
@@ -133,6 +121,19 @@ class TypeTaskOverlay(BaseOverlay):
         task_widget.finish_toggled.connect(self.on_finish_toggled)
         # 加入時以 AlignTop（或不帶 alignment）讓 widget 能橫向伸展填滿 container
         self.scroll_layout.addWidget(task_widget, alignment=Qt.AlignTop)
+
+    @pyqtSlot(str)
+    def _on_edit_task_requested(self, task_id):
+        """
+        這就是「指令」！
+        當 TaskWidget 請求編輯時，我們呼叫 TaskService。
+        """
+        if not self.task_service:
+            print("TypeTaskOverlay 錯誤：TaskService 未被傳入！")
+            return
+
+        # 呼叫 TaskService，這會觸發 MainWindow 的「決策中心」
+        self.task_service.open_task_editor(task_id=task_id, is_overlay = self.is_overlay, parent = self)
 
     def refresh_data(self, task_type=None, date_filter=None, mode=None):
 
@@ -206,23 +207,39 @@ class TypeTaskOverlay(BaseOverlay):
             self.scroll_layout.addWidget(no_task_label, alignment= Qt.AlignVCenter)
             self.scroll_layout.addStretch()  
 
-        QTimer.singleShot(0, self.update_font_scale)
-
-
     def delete_task(self, task_id):
         # 找到對應 TaskWidget
         task_widget_to_delete = None
-        for widget in self.task_widget_set:
+        for widget in list(self.task_widget_set):
             if getattr(widget, "task_id", None) == task_id:
                 task_widget_to_delete = widget
                 break
 
-        if task_widget_to_delete:
-            delete_with_animation(task_widget_to_delete)
-            self.task_widget_set.remove(task_widget_to_delete)
+        if not task_widget_to_delete:
+            # 未找到對應 widget，直接移除資料並刷新
+            try:
+                self.event_adapter.remove_event(task_id)
+            except Exception:
+                pass
+            QTimer.singleShot(0, lambda: self.refresh_data(mode=self.mode))
+            return
 
-        self.event_adapter.remove_event(task_id)
-        self.refresh_data(mode=self.mode)
+        # 先從集合移除（避免重複處理）
+        try:
+            self.task_widget_set.remove(task_widget_to_delete)
+        except ValueError:
+            pass
+
+        # 在動畫完成後再移除資料並刷新列表，避免與動畫同時操作 layout 導致競態
+        def _after_delete():
+            try:
+                self.event_adapter.remove_event(task_id)
+            except Exception:
+                pass
+            # 小延遲再 refresh，確保動畫 cleanup 完成
+            QTimer.singleShot(50, lambda: self.refresh_data(mode=self.mode))
+
+        delete_with_animation(task_widget_to_delete, on_deleted=_after_delete)
 
 
     def delete_all_past_task(self):
@@ -288,6 +305,10 @@ class TypeTaskOverlay(BaseOverlay):
 
                     print(f"{target} | base={base_size}, scale={scale}, new={new_size}")
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self.update_font_scale)
+
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(0, self.update_font_scale)
@@ -295,7 +316,7 @@ class TypeTaskOverlay(BaseOverlay):
 
 # 新增或刪除事件的類別
 class AddTypeCard(BaseOverlay):
-    save_signal = pyqtSignal()
+    refresh_signal = pyqtSignal()
 
     def __init__(self, title : str, color : str, type_controller = None, parent = None):
         super().__init__(parent)
@@ -317,11 +338,6 @@ class AddTypeCard(BaseOverlay):
             }
         """)
         self.overlay_bg.setGeometry(self.rect())
-
-        # 主 layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.overlay_bg)
         
         container = QFrame(self.overlay_bg)
         container.setStyleSheet("""
@@ -431,7 +447,7 @@ class AddTypeCard(BaseOverlay):
 
         if hasattr(self, "delete_button") and self.delete_button is not None:
             self.type_controller.update_type(new_type)
-            self.save_signal.emit()
+            self.refresh_signal.emit()
             self.close()
         else:
             if self.type_name_line_edit.text() == "" :
@@ -450,7 +466,7 @@ class AddTypeCard(BaseOverlay):
                     )
             else:
                 self.type_controller.add_type(new_type)
-                self.save_signal.emit()
+                self.refresh_signal.emit()
                 self.close()
 
     def delete_type(self, type_id):
@@ -461,6 +477,7 @@ class AddTypeCard(BaseOverlay):
             }
         if self.type_controller.has_same_id(delete_type) :
             self.type_controller.delete_type(type_id)
+            self.refresh_signal.emit()
             self.close()
         else:
             print("can't find the type")

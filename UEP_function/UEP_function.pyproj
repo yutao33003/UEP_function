@@ -53,12 +53,15 @@
     <Compile Include="set_reminder\adapters\event_adapter.py" />
     <Compile Include="set_reminder\json_repository\record_controller.py" />
     <Compile Include="set_reminder\json_repository\task_record.json" />
+    <Compile Include="set_reminder\model\shared_task_state.py" />
+    <Compile Include="set_reminder\services\task_service.py" />
     <Compile Include="set_reminder\view\main_window.py" />
     <Compile Include="set_reminder\view\overlay\base_overlay.py" />
     <Compile Include="set_reminder\view\overlay\edit_overlay.py" />
     <Compile Include="set_reminder\view\overlay\gray_background_overlay.py" />
     <Compile Include="set_reminder\view\overlay\overlay_controller.py" />
     <Compile Include="set_reminder\view\overlay\overlay_factory.py" />
+    <Compile Include="set_reminder\view\overlay\simple_overlay.py" />
     <Compile Include="set_reminder\view\sorting_ui.py" />
     <Compile Include="set_reminder\view\today_list_ui.py" />
     <Compile Include="set_reminder\view\widget\right_click_btn.py" />
@@ -95,6 +98,8 @@
     <Folder Include="set_reminder\calendar\" />
     <Folder Include="set_reminder\json_repository\" />
     <Folder Include="set_reminder\adapters\" />
+    <Folder Include="set_reminder\model\" />
+    <Folder Include="set_reminder\services\" />
     <Folder Include="set_reminder\view\" />
     <Folder Include="set_reminder\view\overlay\" />
     <Folder Include="set_reminder\view\widget\" />

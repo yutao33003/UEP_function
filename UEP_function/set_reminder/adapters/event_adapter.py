@@ -231,13 +231,17 @@ class EventAdapter(QObject):
         return {
             "title": task.get("title") or task.get("name") or "Untitled",
             "id": task.get("id"),
-            "type": task.get("type"),
-            "start_time": task.get("start_time"),
-            "end_time": task.get("end_time"),
-            "description": task.get("description"),
-            "finish": task.get("finish", False),
-            "priority": task.get("priority"),
-            "raw": task  # 保留原始物件，方便進一步操作
+            "type": task.get("type") or task.get("category") or "work",
+            "start_time": task.get("start_time") or "",
+            "end_time": task.get("end_time") or "",
+            "description": task.get("description") or "",
+            "priority": task.get("priority") or "medium",
+            "alert1": task.get("alert1") or "None",
+            "alert2": task.get("alert2") or "None",
+            "repeat": bool(task.get("repeat", False)),
+            "finish": bool(task.get("finish", False)),
+            # 修正：is_new_task 應該從原始資料取或預設 False
+            "is_new_task": bool(task.get("is_new_task", False))
         }
 
     def _on_taskcontroller_changed(self, task_id_or_none):

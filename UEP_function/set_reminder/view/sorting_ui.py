@@ -13,7 +13,7 @@ from set_reminder.view.widget.widget import (
 class SortingUI(QWidget):
     switch_page = pyqtSignal(int)
     
-    def __init__(self, event_adapter=None, overlay_ctrl=None, type_ctrl=None, min_cell_width=140):
+    def __init__(self, event_adapter=None, overlay_ctrl=None, type_ctrl=None, task_service = None, min_cell_width=140):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
@@ -21,6 +21,7 @@ class SortingUI(QWidget):
         self.event_adapter = event_adapter
         self.type_controller = type_ctrl
         self.overlay_controller = overlay_ctrl
+        self.task_service = task_service
         self.min_cell_width = min_cell_width
         self.buttons = []
         self.square_buttons = True
@@ -102,8 +103,6 @@ class SortingUI(QWidget):
         self.add_button.clicked.connect(
             lambda checked: self.exit_edit_type_page("", "")
         )
-        if self.event_adapter:
-            self.event_adapter.events_updated.connect(self.reload_type_buttons)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -218,7 +217,10 @@ class SortingUI(QWidget):
                     parent=self,
                     mode="feature",
                     task_type=t,
-                    event_adapter=self.event_adapter
+                    event_adapter=self.event_adapter,
+                    type_controller = self.type_controller,
+                    task_service = self.task_service,
+                    is_overlay = True
                 )
             )
             button.rightClicked.connect(
@@ -238,7 +240,7 @@ class SortingUI(QWidget):
             color=type_color,
             type_controller = self.type_controller
         )
-        add_type_overlay.save_signal.connect(lambda : self.reload_type_buttons())
+        add_type_overlay.refresh_signal.connect(lambda : self.reload_type_buttons())
 
 
 
